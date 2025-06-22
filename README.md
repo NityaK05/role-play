@@ -31,4 +31,4 @@ Future Plans
 - Real-time suggestions
 
 Contributors
-- Anirudh Rajesh, Nitya Kakulamarri, Prathiyanka Arun, Avanthika Arum
+- Anirudh Rajesh, Nitya Kakulamarri, Prathiyanka Arun, Avanthika Arun
