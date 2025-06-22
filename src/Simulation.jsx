@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import "./Simulation.css";
 import TranscriptPopUp from "./TranscriptPopUp";
+import { motion } from "framer-motion";
 
 export default function SimulationPage() {
   const [sessionTitle, setSessionTitle] = useState("Practice Session");
@@ -20,8 +21,6 @@ export default function SimulationPage() {
         text: "Thank you for the practice session. Good luck with your real negotiation!"
         },
     ];  
-
-
 
     
   useEffect(() => {
@@ -59,7 +58,13 @@ export default function SimulationPage() {
   return (
     <div className="container">
       <div className="main-content">
-        <header className="header">
+        
+              <motion.header
+                className="header"
+                initial={{ y: -40, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0 }}
+              >
           <div className="header-left">
             <div className="logo">
             <img src="/Logo2.png" alt="Logo" className="logo-icon" />
@@ -74,23 +79,53 @@ export default function SimulationPage() {
           <div className="header-right">
             <button className="home-btn" onClick={() => window.location.href = '/'}>Home</button>
           </div>
-        </header>
+        </motion.header>
+
+
+
 
         <div className="content">
-          <div className="avatar">
-            <div className="robot-icon">🎤</div>
-          </div>
-          <h1 className="title">Ready to Practice</h1>
-          <p className="description">
+            <motion.div
+                className="avatar"
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+            >
+                <div className="robot-icon">🎤</div>
+            </motion.div>
+
+        <motion.h1
+            className="title"
+            initial={{ y: -30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+        >
+            Ready to Practice
+        </motion.h1>
+
+        <motion.p
+            className="description"
+            initial={{ y: -30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.6 }}
+        >
             I'm ready to help you practice your _____. I'll play the role of ____ and provide realistic responses based on your scenario setup.
-          </p>
-          <div className="controls">
-            <button className="control-btn start-pause-btn" onClick={toggleSession}>
-              {started && !paused ? "⏸" : "▶"}
-            </button>
-            <button className="control-btn end-btn" onClick={() => setShowSummary(true)}>⏹</button>
-            <button className="control-btn retry-btn" onClick={resetSession}>🔁</button>
-          </div>
+        </motion.p>
+
+
+            <motion.div
+                className="controls"
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.8 }}
+            >
+                <button className="control-btn start-pause-btn" onClick={toggleSession}>
+                {started && !paused ? "⏸" : "▶"}
+                </button>
+                <button className="control-btn end-btn" onClick={() => setShowSummary(true)}>⏹</button>
+                <button className="control-btn retry-btn" onClick={resetSession}>🔁</button>
+            </motion.div>
+
         </div>
         {showSummary && (
   <div className="session-summary">
@@ -129,7 +164,12 @@ export default function SimulationPage() {
       </div>
 
       <div className="sidebar">
-        <div className="sidebar-section">
+        <motion.div
+            className="sidebar-section"
+            initial={{ y: -30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+        >
           <h3 className="sidebar-title">Session Analytics</h3>
           <div className="analytics-grid">
             <div className="metric">
@@ -178,28 +218,54 @@ export default function SimulationPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="sidebar-section">
-          <h3 className="sidebar-title">Key Goals</h3>
-          <div className="goal-card">
+        </motion.div>
+
+        <motion.div
+            className="sidebar-section"
+            initial={{ y: -30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+        >
+            <h3 className="sidebar-title">Key Goals</h3>
+
+            <motion.div
+            className="goal-card"
+            initial={{ y: -30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.5 }}
+            >
             <div className="goal-priority">HIGH</div>
             <div className="goal-title">Present salary research</div>
             <div className="goal-description">Support your request with market data and industry benchmarks.</div>
-          </div>
-          <div className="goal-card">
+            </motion.div>
+
+            <motion.div
+            className="goal-card"
+            initial={{ y: -30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.7 }}
+            >
             <div className="goal-priority" style={{ background: '#a855f7' }}>MEDIUM</div>
             <div className="goal-title">Highlight achievements</div>
             <div className="goal-description">Mention specific contributions and measurable results.</div>
-          </div>
-        </div>
-      </div>
-      {!showConversation && (
-        <button className="conversation-btn" onClick={() => setShowConversation(true)}>
-            💬
-        </button>
-            )}
+            </motion.div>
+        </motion.div>
 
+
+
+      </div>
+        {!showConversation && (
+        <motion.button
+            className="conversation-btn"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.2, delay: 0.9 }}
+            onClick={() => setShowConversation(true)}
+        >
+            💬
+        </motion.button>
+        )}
         {showConversation && (
         <div className="conversation-popup">
             <button className="close-btn" onClick={() => setShowConversation(false)}>✕</button>

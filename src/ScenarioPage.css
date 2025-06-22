@@ -56,11 +56,11 @@ body {
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   margin-top: 0.5rem; 
-  margin-left: 87%; 
+  margin-left: 85%; 
 }
 
 .history-btn:hover {
@@ -84,14 +84,14 @@ body {
 }
 
 .setup-title {
-  font-size: 1.5rem;
+  font-size: 2.5rem;
   color: #A29BFE;
   text-align: center;
   margin-bottom: 4px;
 }
 
 .setup-subtitle {
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   color: #B19CD9;
   text-align: center;
   margin-bottom: 16px;
@@ -164,7 +164,7 @@ body {
 .prev-btn {
   background: #2D1B4E;
   color: #B19CD9;
-  margin-right: 10px;
+  margin-right: 1rem;
 }
 
 .prev-btn:hover {
@@ -198,5 +198,31 @@ body {
 
   .prev-btn {
     margin-right: 0;
+  }
+}
+
+/*
+.fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+  opacity: 0; /* start transparent 
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+*/
+
+.drop-in {
+  animation: dropDown 0.6s ease-out forwards;
+  transform: translateY(-50px);
+  opacity: 0;
+}
+
+@keyframes dropDown {
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
