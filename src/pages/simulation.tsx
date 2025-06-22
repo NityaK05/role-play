@@ -26,7 +26,6 @@ export default function SimulationPage() {
 
   // State for feedback spectrum and AI thinking
   const [showFeedbackSpectrum, setShowFeedbackSpectrum] = useState(false);
-  const [showAiThinking, setShowAiThinking] = useState(false);
   const [overallFeedback, setOverallFeedback] = useState<any>(null);
 
   // Fetch session data if sessionId is present
@@ -102,24 +101,12 @@ export default function SimulationPage() {
   const handleUserSpeechEnd = () => {
     setUserSpeaking(false);
     setShowFeedbackSpectrum(false); // Hide feedback when user stops speaking
-    // After user finishes speaking, update overall feedback analytics
-    // Deprecated: /api/generateFeedback endpoint removed
-    // if (audioBlob) {
-    //   fetch('/api/generateFeedback', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ audioBlob: audioBlob }),
-    //   })
-    //     .then(res => res.ok ? res.json() : null)
-    //     .then(data => {
-    //       if (data) setOverallFeedback(data);
-    //     });
-    // }
+    setAiThinking(true); // Show AI is thinking popup after user finishes speaking
   };
   const handleAiSpeechStart = () => {
     setAiSpeaking(true);
     setShowFeedbackSpectrum(false); // Hide feedback when AI is speaking
-    setShowAiThinking(false); // Remove 'AI is thinking...' when AI starts speaking
+    setAiThinking(false); // Hide AI is thinking popup when AI starts speaking
   };
   const handleAiSpeechEnd = () => {
     setAiSpeaking(false);
@@ -127,15 +114,6 @@ export default function SimulationPage() {
   const handleTranscriptUpdate = (t: any[]) => setTranscript(t);
   const handleMicClick = () => setListening((l) => !l);
   const handleUserAudioBlob = (blob: Blob) => setAudioBlob(blob);
-
-  // Show 'AI is thinking...' when user stops speaking and AI is generating
-  useEffect(() => {
-    if (!userSpeaking && aiThinking && !aiSpeaking) {
-      setShowAiThinking(true);
-    } else {
-      setShowAiThinking(false);
-    }
-  }, [userSpeaking, aiThinking, aiSpeaking]);
 
   // AI waiting icon (spinner)
   const AIWaitingIcon = () => (
@@ -148,8 +126,21 @@ export default function SimulationPage() {
     </div>
   );
 
+  // Remove all setShowAiThinking and showAiThinking useState logic
+  // useEffect(() => {
+  //   if (!userSpeaking && aiThinking && !aiSpeaking) {
+  //     setShowAiThinking(true);
+  //   } else {
+  //     setShowAiThinking(false);
+  //   }
+  // }, [userSpeaking, aiThinking, aiSpeaking]);
+
+  // Use the derived showAiThinking variable for the indicator
+  const showAiThinking = aiThinking && !userSpeaking && !aiSpeaking;
+
   return (
-    <div className="container">
+    <div className="min-h-screen flex bg-black text-brown">
+
       <div className="main-content">
         <motion.header
           className="header"
@@ -173,7 +164,7 @@ export default function SimulationPage() {
             <button className="home-btn" onClick={() => router.push('/')}>Home</button>
           </div>
         </motion.header>
-        <div style={{ height: '72px' }} /> {/* Spacer to prevent content from being hidden under fixed header */}
+        <div style={{ height: '96px' }} /> {/* Spacer to move session title lower */}
 
         <div className="content" style={{ position: 'relative', width: '100%' }}>
           {/* MicButton as the main mic icon, centered and clickable */}
@@ -183,9 +174,9 @@ export default function SimulationPage() {
             transition={{ duration: 0.4, delay: 0.2 }}
             style={{ cursor: 'pointer', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: 140, left: 32 }}
           >
-            {/* AI is thinking... pulsing text */}
+            {/* AI is thinking... pulsing text, moved higher */}
             {showAiThinking && (
-              <div style={{ position: 'absolute', top: -32, left: 0, right: 0, textAlign: 'center', width: '100%' }}>
+              <div style={{ position: 'absolute', top: -64, left: 0, right: 0, textAlign: 'center', width: '100%' }}>
                 <span style={{ color: '#a29bfe', opacity: 0.7, fontWeight: 500, fontSize: 18, animation: 'pulse 1.2s infinite' }}>
                   AI is thinking...
                 </span>

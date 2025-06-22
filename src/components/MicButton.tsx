@@ -62,7 +62,6 @@ const MicButton: React.FC<MicButtonProps> = ({
     analyserRef.current.fftSize = 256;
     sourceRef.current.connect(analyserRef.current);
     const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-    let silenceMs = 0;
     let lastActive = Date.now();
     const update = () => {
       analyserRef.current!.getByteTimeDomainData(dataArray);
@@ -90,27 +89,24 @@ const MicButton: React.FC<MicButtonProps> = ({
     setMicLevel(0);
   };
 
-  // Only start listening when mic is clicked
-  const handleMicButtonClick = () => {
-    setClicked(true);
-    if (onMicClick) onMicClick();
-    setTimeout(() => setClicked(false), 180); // Animation duration
-  };
-
-  // Remove ALL auto-recording: only start when mic is clicked
+  // Remove auto-record when listening is true
   useEffect(() => {
-    // Only start recording if listening is true, user explicitly started it, and mic was clicked
-    // Remove any auto-recording on mount, session start, or prop change
-    // (No-op unless handleMicButtonClick triggers listening)
-    // If listening is turned off, stop any ongoing recording
-    if (!listening && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+    // Only auto-record if listening is true, user explicitly started it, and AI is NOT speaking
+    if (listening && !aiSpeaking && !userSpeaking && !loading && !isRecordingRef.current) {
+      isRecordingRef.current = true;
+      handleRecord().finally(() => {
+        isRecordingRef.current = false;
+      });
+    }
+    // If listening is turned off, or AI is speaking, stop any ongoing recording
+    if ((!listening || aiSpeaking) && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listening, aiSpeaking, userSpeaking, loading]);
 
   const handleRecord = async () => {
-    if (!session || loading) return;
+    if (!session || loading || aiSpeaking) return; // Prevent recording if AI is speaking
     setLoading(true);
     try {
       onUserSpeechStart();
@@ -164,7 +160,6 @@ const MicButton: React.FC<MicButtonProps> = ({
         try {
           const transcriptRes = await fetch(`/api/session/${session.id}/transcript?format=json`);
           const transcript = await transcriptRes.json();
-          console.log('Fetched transcript:', transcript);
           onTranscriptUpdate(transcript);
         } catch {}
         let sfxMap: Record<string, string> = {};
@@ -176,7 +171,6 @@ const MicButton: React.FC<MicButtonProps> = ({
           // Play SFX cues in order as they appear in aiText
           let aiText = sendData.aiText || '';
           let sfxCues: string[] = (sendData.sfxCues || []).filter((cue: string) => ALLOWED_SFX.includes(cue));
-          let sfxIdx = 0;
           // Split aiText by [SFX:cue] markers
           const parts = aiText.split(/\[SFX:([^\]]+)\]/i);
           const playNext = async (idx: number) => {
@@ -191,28 +185,25 @@ const MicButton: React.FC<MicButtonProps> = ({
               if (text) {
                 try {
                   const audio = new Audio(sendData.audioUrl);
-                  audio.onplay = () => {
-                    setMicLevel(0.7);
-                    console.log('AI audio playback started');
-                  };
-                  audio.onended = () => {
-                    console.log('AI audio playback ended');
-                    playNext(idx + 1);
-                  };
+                  audio.onplay = () => setMicLevel(0.7);
+                  audio.onended = () => playNext(idx + 1);
                   audio.onerror = (e) => {
-                    console.error('AI audio playback error', e);
-                    playNext(idx + 1);
+                    setMicLevel(0);
+                    onAiSpeechEnd();
                   };
-                  await audio.play().catch((err) => {
-                    console.error('AI audio play() promise rejected', err);
-                    playNext(idx + 1);
-                  });
-                  return;
-                } catch (err) {
-                  console.error('AI audio playback exception', err);
-                  playNext(idx + 1);
-                  return;
+                  audio.volume = 1.0;
+                  const playPromise = audio.play();
+                  if (playPromise && playPromise.catch) {
+                    playPromise.catch(() => {
+                      setMicLevel(0);
+                      onAiSpeechEnd();
+                    });
+                  }
+                } catch {
+                  setMicLevel(0);
+                  onAiSpeechEnd();
                 }
+                return;
               } else {
                 playNext(idx + 1);
                 return;
@@ -228,8 +219,7 @@ const MicButton: React.FC<MicButtonProps> = ({
               if (sfxUrl) {
                 const sfxAudio = new Audio(sfxUrl);
                 sfxAudio.onended = () => playNext(idx + 1);
-                sfxAudio.onerror = () => playNext(idx + 1);
-                sfxAudio.play().catch(() => playNext(idx + 1));
+                sfxAudio.play();
                 return;
               } else {
                 playNext(idx + 1);
@@ -248,75 +238,49 @@ const MicButton: React.FC<MicButtonProps> = ({
             });
             if (ttsRes.ok) {
               const ttsBlob = await ttsRes.blob();
-              console.log('TTS audio blob size:', ttsBlob.size);
-              if (ttsBlob.size === 0) {
-                setMicLevel(0);
-                onAiSpeechEnd();
-                console.error('TTS returned empty audio blob');
-                return;
-              }
               const ttsUrl = URL.createObjectURL(ttsBlob);
               try {
                 const audio = new Audio(ttsUrl);
-                audio.onplay = () => {
-                  setMicLevel(0.7); // Simulate AI voice pulse
-                  console.log('Fallback TTS audio playback started');
-                };
+                audio.onplay = () => setMicLevel(0.7); // Simulate AI voice pulse
                 audio.onended = () => {
                   setMicLevel(0);
                   onAiSpeechEnd();
                   URL.revokeObjectURL(ttsUrl);
-                  console.log('Fallback TTS audio playback ended');
                 };
-                audio.onerror = (e) => {
+                audio.onerror = () => {
                   setMicLevel(0);
                   onAiSpeechEnd();
                   URL.revokeObjectURL(ttsUrl);
-                  console.error('Fallback TTS audio playback error', e);
                 };
-                await audio.play().catch((err) => {
-                  setMicLevel(0);
-                  onAiSpeechEnd();
-                  URL.revokeObjectURL(ttsUrl);
-                  console.error('Fallback TTS audio play() promise rejected', err);
-                });
-              } catch (err) {
+                audio.volume = 1.0;
+                const playPromise = audio.play();
+                if (playPromise && playPromise.catch) {
+                  playPromise.catch(() => {
+                    setMicLevel(0);
+                    onAiSpeechEnd();
+                    URL.revokeObjectURL(ttsUrl);
+                  });
+                }
+              } catch {
                 setMicLevel(0);
                 onAiSpeechEnd();
                 URL.revokeObjectURL(ttsUrl);
-                console.error('Fallback TTS audio playback exception', err);
               }
             } else {
               setMicLevel(0);
               onAiSpeechEnd();
-              const errText = await ttsRes.text();
-              console.error('TTS fetch failed', ttsRes.status, errText);
             }
-          } catch (err) {
+          } catch {
             setMicLevel(0);
             onAiSpeechEnd();
-            console.error('TTS fetch exception', err);
           }
         } else {
           setMicLevel(0);
           onAiSpeechEnd();
         }
         setLoading(false);
-        // Remove auto-restart after AI finishes (unless you want continuous mode)
-        // If you want continuous mode, gate this behind a user setting or explicit toggle
-        // if (listening) {
-        //   setTimeout(() => {
-        //     if (listening && !aiSpeaking) {
-        //       isRecordingRef.current = true;
-        //       handleRecord().finally(() => {
-        //         isRecordingRef.current = false;
-        //       });
-        //     }
-        //   }, 4000);
-        // }
       };
       recorder.start();
-      // REMOVE fixed timeout: let VAD handle stopping
     } catch (err) {
       stopMicLevel();
       onUserSpeechEnd();
@@ -331,29 +295,43 @@ const MicButton: React.FC<MicButtonProps> = ({
     pulseScale = 1.18;
     pulseShadow = '0 0 48px 18px rgba(210,180,140,0.35)';
   } else if (userSpeaking && !aiThinking) {
-    // Softer, more natural pulse for user: scale and shadow increase gently with volume
-    pulseScale = 1 + Math.min(micLevel * 5, 1.25); // less dramatic scaling
+    pulseScale = 1 + Math.min(micLevel * 5, 1.25);
     pulseShadow = micLevel > 0.03 ? `0 0 ${28 + micLevel * 80}px 12px rgba(210,180,140,${0.22 + micLevel * 0.6})` : 'none';
   } else if (aiSpeaking && !aiThinking) {
-    // Smooth, gentle pulse for AI: no sudden jumps
     const t = Date.now() / 600;
     const aiLevel = 0.12 + 0.08 * Math.sin(t) + 0.04 * Math.sin(t * 2.1);
     pulseScale = 1 + aiLevel * 2.2;
     pulseShadow = `0 0 ${36 + aiLevel * 60}px 12px rgba(210,180,140,${0.22 + aiLevel * 0.5})`;
   }
 
+  // Only start listening when mic is clicked and AI is NOT speaking
+  const handleMicButtonClick = () => {
+    if (aiSpeaking) return; // Prevent listening if AI is speaking
+    setClicked(true);
+    if (onMicClick) onMicClick();
+    setTimeout(() => setClicked(false), 180); // Animation duration
+  };
+
+  // Ensure loading is always reset after AI speaks
+  useEffect(() => {
+    if (!aiSpeaking) {
+      setLoading(false);
+    }
+  }, [aiSpeaking]);
+
   return (
-    <button
-      className={`rounded-full w-36 h-36 flex items-center justify-center bg-brown text-beige text-5xl shadow-lg transition-all duration-150 ${(userSpeaking || aiSpeaking) && !aiThinking ? 'mic-pulse' : ''} ${clicked ? styles['mic-clicked'] : ''}`}
-      style={{ transform: `scale(${pulseScale})`, boxShadow: pulseShadow, outline: clicked ? '4px solid #D2B48C' : 'none', outlineOffset: '4px' }}
-      disabled={disabled || loading}
-      aria-label="Microphone"
-      onClick={handleMicButtonClick}
-    >
-      <span role="img" aria-label="mic">🎤</span>
-    </button>
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        className={`rounded-full w-36 h-36 flex items-center justify-center bg-brown text-beige text-5xl shadow-lg transition-all duration-150 ${(userSpeaking || aiSpeaking) && !aiThinking ? 'mic-pulse' : ''} ${clicked ? styles['mic-clicked'] : ''}`}
+        style={{ transform: `scale(${pulseScale})`, boxShadow: pulseShadow, outline: clicked ? '4px solid #D2B48C' : 'none', outlineOffset: '4px' }}
+        disabled={disabled || loading}
+        aria-label="Microphone"
+        onClick={handleMicButtonClick}
+      >
+        <span role="img" aria-label="mic">🎤</span>
+      </button>
+    </div>
   );
 };
 
 export default MicButton;
-
