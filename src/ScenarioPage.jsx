@@ -15,7 +15,7 @@ function ScenarioPage() {
   const startSimulation = () => {
     const title = scenarioTitle.trim() || 'Practice Session';
     localStorage.setItem('sessionTitle', title);
-    navigate('/chat');
+    navigate('/Simulation');
   };
 
   return (
