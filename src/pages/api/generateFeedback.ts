@@ -11,7 +11,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const transcript = data.exchanges.map((ex: any) => `${ex.speaker}: ${ex.text}`).join('\n');
   // Feedback prompt
   const prompt = `Act as a communication coach. Based on the following transcript, give the user constructive feedback. Include strengths and 2–3 areas to improve related to tone, clarity, confidence, or persuasiveness.\n\nTranscript:\n${transcript}`;
-  const feedback = await callLlama(prompt, process.env.LLAMA_API_KEY!);
+  let feedback = '';
+  try {
+    feedback = await callLlama(prompt, process.env.LLAMA_API_KEY!);
+  } catch (e: any) {
+    console.error('Llama API error (generateFeedback):', e?.message || e);
+    return res.status(500).json({ error: 'Llama API error', details: e?.message || e });
+  }
   // Save feedback to session
   await supabase.from('sessions').update({ feedback }).eq('id', sessionId);
   res.status(200).json({ feedback });

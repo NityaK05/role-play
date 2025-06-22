@@ -1,11 +1,19 @@
 import axios from 'axios';
 
-const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Rachel (ElevenLabs default)
+const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Rachel (ElevenLabs default, very natural)
 
 export async function callTTS(text: string, apiKey: string, voiceId: string = DEFAULT_VOICE_ID) {
   const response = await axios.post(
     `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-    { text },
+    {
+      text,
+      voice_settings: {
+        stability: 0.3, // lower = more expressive
+        similarity_boost: 0.8, // higher = more like the base voice
+        style: 0.7, // more conversational
+        use_speaker_boost: true
+      }
+    },
     {
       headers: {
         'xi-api-key': apiKey,

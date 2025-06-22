@@ -80,6 +80,7 @@ const MicButton: React.FC<MicButtonProps> = ({
 
   // Auto-record when listening is true and AI is not speaking
   useEffect(() => {
+    // Only auto-record if listening is true and user explicitly started it
     if (listening && !aiSpeaking && !userSpeaking && !loading && !isRecordingRef.current) {
       isRecordingRef.current = true;
       handleRecord().finally(() => {
@@ -91,7 +92,7 @@ const MicButton: React.FC<MicButtonProps> = ({
       mediaRecorderRef.current.stop();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listening, aiSpeaking]);
+  }, [listening, aiSpeaking, userSpeaking, loading]);
 
   const handleRecord = async () => {
     if (!session || loading) return;
@@ -109,12 +110,12 @@ const MicButton: React.FC<MicButtonProps> = ({
         stream.getTracks().forEach((track) => track.stop());
         onUserSpeechEnd();
         const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-        // Send audio to backend for Whisper STT
+        // Send audio to backend for AWS Transcribe STT
         const formData = new FormData();
         formData.append('file', audioBlob, 'audio.webm');
         let sttData;
         try {
-          const sttRes = await fetch('/api/whisper', {
+          const sttRes = await fetch('/api/transcribe', {
             method: 'POST',
             body: formData,
           });
@@ -139,14 +140,15 @@ const MicButton: React.FC<MicButtonProps> = ({
           });
           sendData = await sendRes.json();
         } catch (err) {
-          onAiSpeechEnd();
           setLoading(false);
+          onAiSpeechEnd();
           return;
         }
         // Update transcript in UI
         try {
           const transcriptRes = await fetch(`/api/session/${session.id}/transcript?format=json`);
           const transcript = await transcriptRes.json();
+          console.log('Fetched transcript:', transcript);
           onTranscriptUpdate(transcript);
         } catch {}
         // Play AI audio (if available)
