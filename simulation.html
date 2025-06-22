@@ -134,14 +134,32 @@
       font-size: 14px; font-weight: 600; color: #a0a0a0;
       text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px;
     }
-    .analytics-grid { display: grid; gap: 16px; }
+    .analytics-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 20px; 
+    }
+    .analytics-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
     .metric {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex; 
+      flex-direction: column; 
+      padding: 12px 0; 
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
     .metric:last-child { border-bottom: none; }
+    .metric-header {
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      margin-bottom: 8px;
+    }
     .metric-label { font-size: 14px; color: #e5e5e5; }
     .metric-value { font-size: 14px; font-weight: 600; color: white; }
+
     .goals-list { display: flex; flex-direction: column; gap: 16px; }
     .goal-card {
       background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.3);
@@ -254,6 +272,28 @@
     .stat-label {
       font-size: 12px; color: #a0a0a0; text-transform: uppercase; letter-spacing: 0.5px;
     }
+    
+    .metric-bar {
+      width: 100%;             /* full width under the label */
+      height: 6px;             /* bar thickness */
+      border: 1px solid rgba(255,255,255,0.3);  /* clearer outline */
+      border-radius: 3px;
+      background: rgba(255,255,255,0.05);       /* very light track color */
+      overflow: hidden;
+    }
+
+    /* The colored fill */
+    .metric-bar-fill {
+      height: 100%;
+      width: 0;                /* default—will set via JS */
+      background: #7c3aed;     /* your purple accent */
+      transition: width 0.5s ease;
+    }
+
+    /* Duration bar should always be full */
+    .metric.duration .metric-bar-fill {
+      width: 100% !important;
+    }
   </style>
 </head>
 <body>
@@ -290,13 +330,65 @@
       <div class="sidebar-section">
         <h3 class="sidebar-title">Session Analytics</h3>
         <div class="analytics-grid">
-          <div class="metric"><span class="metric-label">Duration</span><span class="metric-value" id="duration">0:00</span></div>
-          <div class="metric"><span class="metric-label">Confidence</span><span class="metric-value" id="confidence">85%</span></div>
-          <div class="metric"><span class="metric-label">Clarity</span><span class="metric-value" id="clarity">92%</span></div>
-          <div class="metric"><span class="metric-label">Tone</span><span class="metric-value" id="tone">Professional</span></div>
-          <div class="metric"><span class="metric-label">Pace</span><span class="metric-value" id="pace">Moderate</span></div>
+          <div class="analytics-column">
+            <div class="metric duration">
+              <div class="metric-header">
+                <span class="metric-label">Duration</span>
+                <span class="metric-value" id="duration">0:00</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-bar-fill" id="duration-fill"></div>
+              </div>
+            </div>
+
+            <div class="metric">
+              <div class="metric-header">
+                <span class="metric-label">Confidence</span>
+                <span class="metric-value" id="confidence">85%</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-bar-fill" id="confidence-fill"></div>
+              </div>
+            </div>
+
+            <div class="metric">
+              <div class="metric-header">
+                <span class="metric-label">Clarity</span>
+                <span class="metric-value" id="clarity">92%</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-bar-fill" id="clarity-fill"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Second column: last two metrics -->
+          <div class="analytics-column">
+            <div class="metric">
+              <div class="metric-header">
+                <span class="metric-label">Tone</span>
+                <span class="metric-value" id="tone">Professional</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-bar-fill" id="tone-fill"></div>
+              </div>
+            </div>
+
+            <div class="metric">
+              <div class="metric-header">
+                <span class="metric-label">Pace</span>
+                <span class="metric-value" id="pace">Moderate</span>
+              </div>
+              <div class="metric-bar">
+                <div class="metric-bar-fill" id="pace-fill"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+
+
       <div class="sidebar-section">
         <h3 class="sidebar-title">Key Goals</h3>
         <div class="goals-list">
@@ -539,6 +631,23 @@
       }
     }
 
+    function updateMetric(id, valueText) {
+      const valueEl = document.getElementById(id);
+      const fillEl  = document.getElementById(id + '-fill');
+      valueEl.textContent = valueText;
+      const pct = parseInt(valueText, 10);
+      fillEl.style.width = pct + '%';
+    }
+
+    const tonePositions = { 'Formal':25, 'Professional':50, 'Friendly':75, 'Casual':100 };
+    const pacePositions = { 'Slow':25, 'Moderate':50, 'Brisk':75, 'Fast':100 };
+
+    function updateCategoricalMetric(id, category, mapping) {
+      document.getElementById(id).textContent = category;
+      document.getElementById(id + '-fill').style.width = mapping[category] + '%';
+    }
+
+
     function showCompletionModal() {
       document.getElementById('finalDuration').textContent = document.getElementById('duration').textContent;
       document.getElementById('finalConfidence').textContent = document.getElementById('confidence').textContent;
@@ -561,6 +670,19 @@
         document.getElementById('completionModal').classList.add('active');
       }
     }
+    document.addEventListener('DOMContentLoaded', () => {
+    // numeric bars:
+    updateMetric('confidence', document.getElementById('confidence').textContent);
+    updateMetric('clarity',    document.getElementById('clarity').textContent);
+
+    // categorical bars:
+    const currentTone = document.getElementById('tone').textContent;
+    updateCategoricalMetric('tone', currentTone, tonePositions);
+
+    const currentPace = document.getElementById('pace').textContent;
+    updateCategoricalMetric('pace', currentPace, pacePositions);
+  });
+
   </script>
 </body>
 </html>
