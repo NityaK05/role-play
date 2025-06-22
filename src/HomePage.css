@@ -52,6 +52,7 @@ body {
   font-size: 4rem;
   color: #E8E3F0;
   margin-bottom: 0rem;
+  line-height: 1.1; 
 }
 
 .hero-text p {
