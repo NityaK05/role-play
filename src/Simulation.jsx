@@ -55,6 +55,16 @@ export default function SimulationPage() {
   const minutes = Math.floor(duration / 60);
   const seconds = duration % 60;
 
+
+    let sessionStatus = "Ready";
+  if (showSummary) {
+    sessionStatus = "Ended";
+  } else if (started && paused) {
+    sessionStatus = "Paused";
+  } else if (started && !paused) {
+    sessionStatus = "Active";
+  }
+
   return (
     <div className="container">
       <div className="main-content">
@@ -73,7 +83,7 @@ export default function SimulationPage() {
             <div className="session-info">{sessionTitle}</div>
             <div className="status-indicator">
               <div className="status-dot"></div>
-              Ready
+              {sessionStatus}
             </div>
           </div>
           <div className="header-right">
