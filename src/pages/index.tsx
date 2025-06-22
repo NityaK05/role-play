@@ -1,6 +1,7 @@
 import ScenarioSetupForm from '../components/ScenarioSetupForm';
 import MicButton from '../components/MicButton';
 import TranscriptSidebar from '../components/TranscriptSidebar';
+import LiveFeedbackSpectrum from '../components/LiveFeedbackSpectrum';
 import { useState, useEffect } from 'react';
 
 export default function Home() {
@@ -11,6 +12,8 @@ export default function Home() {
   const [userSpeaking, setUserSpeaking] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [listening, setListening] = useState(false);
+  const [aiThinking, setAiThinking] = useState(false);
+  const [userAudioBlob, setUserAudioBlob] = useState<Blob | null>(null);
 
   useEffect(() => {
     if (!session) return;
@@ -31,49 +34,84 @@ export default function Home() {
     if (data.feedback) setFeedback(data.feedback);
   };
 
+  // Remove auto-listening on session start
   const handleSessionStart = (sessionObj: any) => {
     setSession(sessionObj);
-    setListening(true);
+    setListening(false); // Only start listening when mic is clicked
   };
+
+  // Handler for mic click to start listening (allow at any time after session start)
+  const handleMicClick = () => {
+    if (session && !listening && !aiThinking && !aiSpeaking) {
+      setListening(true);
+    }
+  };
+
+  // Wrap MicButton AI thinking logic
+  const handleUserSpeechEnd = () => {
+    setUserSpeaking(false);
+    setAiThinking(true);
+  };
+  const handleAiSpeechStart = () => {
+    setAiThinking(false);
+    setAiSpeaking(true);
+  };
+  const handleAiSpeechEnd = () => {
+    setAiThinking(false);
+    setAiSpeaking(false);
+  };
+
+  // Show AI thinking when AI is generating a response and not userSpeaking or aiSpeaking
+  const showAiThinking = aiThinking && !userSpeaking && !aiSpeaking;
 
   return (
     <div className="min-h-screen flex bg-black text-brown">
+      {/* AI thinking indicator */}
+      <div className="fixed top-0 left-0 w-full flex justify-center z-50 pointer-events-none">
+        {showAiThinking && (
+          <span className="text-tan bg-black bg-opacity-70 px-4 py-2 rounded-b shadow text-base font-medium animate-pulse transition-all duration-300">AI is thinking...</span>
+        )}
+      </div>
       {/* Scenario Setup Panel */}
       <aside className="w-1/4 bg-beige p-6 flex flex-col justify-between">
         <ScenarioSetupForm onStart={handleSessionStart} />
       </aside>
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col items-center justify-center p-8 relative">
-        <div className="flex-1 flex flex-col items-center justify-center">
+      <main className="flex-1 flex items-center justify-center p-8 relative">
+        {/* Centered microphone icon only, fixed to viewport */}
+        <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
           <MicButton
             aiSpeaking={aiSpeaking}
             userSpeaking={userSpeaking}
-            disabled={!session}
+            disabled={!session || aiThinking}
             listening={listening}
             onUserSpeechStart={() => setUserSpeaking(true)}
-            onUserSpeechEnd={() => setUserSpeaking(false)}
-            onAiSpeechStart={() => setAiSpeaking(true)}
-            onAiSpeechEnd={() => setAiSpeaking(false)}
+            onUserSpeechEnd={handleUserSpeechEnd}
+            onAiSpeechStart={handleAiSpeechStart}
+            onAiSpeechEnd={handleAiSpeechEnd}
             onTranscriptUpdate={setTranscript}
             session={session}
+            aiThinking={aiThinking}
+            onMicClick={handleMicClick}
+            onUserAudioBlob={setUserAudioBlob} // Pass audio blob to spectrum
           />
         </div>
+        {/* Feedback and other content in normal flow, not centered */}
         {feedback && (
-          <div className="mt-8 p-4 bg-tan text-black rounded shadow max-w-lg">
-            <h2 className="font-bold mb-2">Feedback</h2>
-            <p>{feedback}</p>
+          <div className="mt-8 w-full max-w-xl mx-auto z-0">
+            <div className="bg-beige text-brown rounded shadow p-4">
+              <h3 className="font-bold mb-2">Feedback</h3>
+              <div>{feedback}</div>
+            </div>
           </div>
-        )}
-        {session && (
-          <button className="mt-4 bg-brown text-beige rounded px-4 py-2" onClick={handleFeedback}>
-            Get Feedback
-          </button>
         )}
       </main>
       {/* Transcript Sidebar */}
       <aside className="w-1/4 bg-tan p-4 overflow-y-auto">
         <TranscriptSidebar transcript={transcript} session={session} />
       </aside>
+      {/* Place the live feedback spectrum floating at bottom right */}
+      <LiveFeedbackSpectrum audioBlob={userAudioBlob} />
     </div>
   );
 }

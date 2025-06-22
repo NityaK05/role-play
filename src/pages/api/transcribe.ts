@@ -77,12 +77,12 @@ export default async function handler(req: any, res: any) {
           if (data && data.results && data.results.transcripts && data.results.transcripts[0]) {
             transcript = data.results.transcripts[0].transcript;
           } else {
-            console.error('Transcript not found in AWS response:', data);
+            console.error('Transcript not found in AWS response:', JSON.stringify(data, null, 2));
             if (!res.headersSent) return res.status(500).json({ error: 'Transcript not found in AWS response', details: data });
           }
           break;
         } else if (job && job.TranscriptionJobStatus === 'FAILED') {
-          console.error('Transcription job failed:', job);
+          console.error('Transcription job failed:', JSON.stringify(job, null, 2));
           if (!res.headersSent) return res.status(500).json({ error: 'Transcription failed', details: job });
         }
         await new Promise(r => setTimeout(r, 1000));

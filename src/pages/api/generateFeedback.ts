@@ -15,7 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     feedback = await callLlama(prompt, process.env.LLAMA_API_KEY!);
   } catch (e: any) {
-    console.error('Llama API error (generateFeedback):', e?.message || e);
     return res.status(500).json({ error: 'Llama API error', details: e?.message || e });
   }
   // Save feedback to session
