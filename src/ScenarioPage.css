@@ -50,28 +50,8 @@ body {
   margin-right: 0.75rem;
 }
 
-.history-btn {
-  background: #2D1B4E;
-  color: #B19CD9;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 0.5rem; 
-  margin-left: 85%; 
-}
-
-.history-btn:hover {
-  background: #4B3F72;
-  color: #E8E3F0;
-  transform: translateY(-2px);
-  box-shadow: 0 3px 12px rgba(108, 92, 231, 0.4);
-}
-
 .setup-container {
-    margin-top: 1%;
+    margin-top: 3%;
   background: #1B1625;
   border-radius: 10px;
   padding: 2vw;
@@ -162,9 +142,14 @@ body {
 }
 
 .prev-btn {
-  background: #2D1B4E;
-  color: #B19CD9;
+  background: transparent;
+  color: white;
+  border: 1px solid #A29BFE;
+  border-radius: 0.5rem;
+  cursor: pointer;
   margin-right: 1rem;
+  font-size: 0.875rem;
+  transition: background 0.2s ease;
 }
 
 .prev-btn:hover {

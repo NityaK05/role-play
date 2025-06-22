@@ -109,7 +109,7 @@ export default function SimulationPage() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.6 }}
         >
-            I'm ready to help you practice your _____. I'll play the role of ____ and provide realistic responses based on your scenario setup.
+            I'm ready to help you practice your future situations and provide realistic responses based on your scenario setup.
         </motion.p>
 
 
@@ -122,8 +122,19 @@ export default function SimulationPage() {
                 <button className="control-btn start-pause-btn" onClick={toggleSession}>
                 {started && !paused ? "⏸" : "▶"}
                 </button>
-                <button className="control-btn end-btn" onClick={() => setShowSummary(true)}>⏹</button>
-                <button className="control-btn retry-btn" onClick={resetSession}>🔁</button>
+                <button className="control-btn end-btn" 
+                onClick={() => {
+                  clearInterval(intervalId);
+                  setPaused(true);
+                  setStarted(false);
+                  setShowSummary(true);
+                }}
+                >
+                ⏹
+              </button>
+                <button className="control-btn retry-btn" onClick={resetSession}>
+                  <img src="/Redo.png" alt="R" className="icons" />
+                </button>
             </motion.div>
 
         </div>

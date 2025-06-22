@@ -35,14 +35,6 @@ function ScenarioPage() {
         </div>
       </motion.header>
 
-    <motion.button
-        className="history-btn"
-        onClick={() => alert('History not implemented yet')}
-        initial={{ y: -30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-      >Previous Conversations</motion.button>
-
         <motion.div
         className="setup-container"
         initial={{ y: -50, opacity: 0 }}

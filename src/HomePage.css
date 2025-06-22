@@ -43,26 +43,27 @@ body {
 }
 
 .hero-img {
-  width: 385px;
+  width: 25%;
   border-radius: 12px;
-  padding-top: 5rem;
+  padding-top: 5%;
 }
 
 .hero-text h1 {
-  font-size: 4rem;
+  font-size: 400%;
   color: #E8E3F0;
-  margin-bottom: 0rem;
+  margin-bottom: 1rem;
+  margin-top: 2rem;
   line-height: 1.1; 
 }
 
 .hero-text p {
   color: #B19CD9;
   font-size: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .hero-button {
-  background-color: #6C5CE7;
+  background: linear-gradient(135deg, #6C5CE7, #A29BFE);
   color: white;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
