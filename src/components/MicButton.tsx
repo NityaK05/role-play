@@ -90,16 +90,18 @@ const MicButton: React.FC<MicButtonProps> = ({
     setMicLevel(0);
   };
 
-  // Remove auto-record when listening is true
+  // Only start listening when mic is clicked
+  const handleMicButtonClick = () => {
+    setClicked(true);
+    if (onMicClick) onMicClick();
+    setTimeout(() => setClicked(false), 180); // Animation duration
+  };
+
+  // Remove ALL auto-recording: only start when mic is clicked
   useEffect(() => {
-    // Only auto-record if listening is true and user explicitly started it
-    // (Removed: auto-record on mount or session start)
-    if (listening && !aiSpeaking && !userSpeaking && !loading && !isRecordingRef.current) {
-      isRecordingRef.current = true;
-      handleRecord().finally(() => {
-        isRecordingRef.current = false;
-      });
-    }
+    // Only start recording if listening is true, user explicitly started it, and mic was clicked
+    // Remove any auto-recording on mount, session start, or prop change
+    // (No-op unless handleMicButtonClick triggers listening)
     // If listening is turned off, stop any ongoing recording
     if (!listening && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
@@ -187,11 +189,30 @@ const MicButton: React.FC<MicButtonProps> = ({
               // Even: TTS text (skip if empty or just whitespace)
               const text = parts[idx].trim();
               if (text) {
-                const audio = new Audio(sendData.audioUrl);
-                audio.onplay = () => setMicLevel(0.7);
-                audio.onended = () => playNext(idx + 1);
-                audio.play();
-                return;
+                try {
+                  const audio = new Audio(sendData.audioUrl);
+                  audio.onplay = () => {
+                    setMicLevel(0.7);
+                    console.log('AI audio playback started');
+                  };
+                  audio.onended = () => {
+                    console.log('AI audio playback ended');
+                    playNext(idx + 1);
+                  };
+                  audio.onerror = (e) => {
+                    console.error('AI audio playback error', e);
+                    playNext(idx + 1);
+                  };
+                  await audio.play().catch((err) => {
+                    console.error('AI audio play() promise rejected', err);
+                    playNext(idx + 1);
+                  });
+                  return;
+                } catch (err) {
+                  console.error('AI audio playback exception', err);
+                  playNext(idx + 1);
+                  return;
+                }
               } else {
                 playNext(idx + 1);
                 return;
@@ -207,7 +228,8 @@ const MicButton: React.FC<MicButtonProps> = ({
               if (sfxUrl) {
                 const sfxAudio = new Audio(sfxUrl);
                 sfxAudio.onended = () => playNext(idx + 1);
-                sfxAudio.play();
+                sfxAudio.onerror = () => playNext(idx + 1);
+                sfxAudio.play().catch(() => playNext(idx + 1));
                 return;
               } else {
                 playNext(idx + 1);
@@ -226,39 +248,72 @@ const MicButton: React.FC<MicButtonProps> = ({
             });
             if (ttsRes.ok) {
               const ttsBlob = await ttsRes.blob();
+              console.log('TTS audio blob size:', ttsBlob.size);
+              if (ttsBlob.size === 0) {
+                setMicLevel(0);
+                onAiSpeechEnd();
+                console.error('TTS returned empty audio blob');
+                return;
+              }
               const ttsUrl = URL.createObjectURL(ttsBlob);
-              const audio = new Audio(ttsUrl);
-              audio.onplay = () => setMicLevel(0.7); // Simulate AI voice pulse
-              audio.onended = () => {
+              try {
+                const audio = new Audio(ttsUrl);
+                audio.onplay = () => {
+                  setMicLevel(0.7); // Simulate AI voice pulse
+                  console.log('Fallback TTS audio playback started');
+                };
+                audio.onended = () => {
+                  setMicLevel(0);
+                  onAiSpeechEnd();
+                  URL.revokeObjectURL(ttsUrl);
+                  console.log('Fallback TTS audio playback ended');
+                };
+                audio.onerror = (e) => {
+                  setMicLevel(0);
+                  onAiSpeechEnd();
+                  URL.revokeObjectURL(ttsUrl);
+                  console.error('Fallback TTS audio playback error', e);
+                };
+                await audio.play().catch((err) => {
+                  setMicLevel(0);
+                  onAiSpeechEnd();
+                  URL.revokeObjectURL(ttsUrl);
+                  console.error('Fallback TTS audio play() promise rejected', err);
+                });
+              } catch (err) {
                 setMicLevel(0);
                 onAiSpeechEnd();
                 URL.revokeObjectURL(ttsUrl);
-              };
-              audio.play();
+                console.error('Fallback TTS audio playback exception', err);
+              }
             } else {
               setMicLevel(0);
               onAiSpeechEnd();
+              const errText = await ttsRes.text();
+              console.error('TTS fetch failed', ttsRes.status, errText);
             }
-          } catch {
+          } catch (err) {
             setMicLevel(0);
             onAiSpeechEnd();
+            console.error('TTS fetch exception', err);
           }
         } else {
           setMicLevel(0);
           onAiSpeechEnd();
         }
         setLoading(false);
-        // If continuous listening, auto-restart after AI finishes
-        if (listening) {
-          setTimeout(() => {
-            if (listening && !aiSpeaking) {
-              isRecordingRef.current = true;
-              handleRecord().finally(() => {
-                isRecordingRef.current = false;
-              });
-            }
-          }, 4000); // increased delay for more time to click mic after AI finishes
-        }
+        // Remove auto-restart after AI finishes (unless you want continuous mode)
+        // If you want continuous mode, gate this behind a user setting or explicit toggle
+        // if (listening) {
+        //   setTimeout(() => {
+        //     if (listening && !aiSpeaking) {
+        //       isRecordingRef.current = true;
+        //       handleRecord().finally(() => {
+        //         isRecordingRef.current = false;
+        //       });
+        //     }
+        //   }, 4000);
+        // }
       };
       recorder.start();
       // REMOVE fixed timeout: let VAD handle stopping
@@ -286,13 +341,6 @@ const MicButton: React.FC<MicButtonProps> = ({
     pulseScale = 1 + aiLevel * 2.2;
     pulseShadow = `0 0 ${36 + aiLevel * 60}px 12px rgba(210,180,140,${0.22 + aiLevel * 0.5})`;
   }
-
-  // Only start listening when mic is clicked
-  const handleMicButtonClick = () => {
-    setClicked(true);
-    if (onMicClick) onMicClick();
-    setTimeout(() => setClicked(false), 180); // Animation duration
-  };
 
   return (
     <button
