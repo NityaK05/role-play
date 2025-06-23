@@ -15,20 +15,20 @@ Tools Used
 -   Framer Motion (for animations)
 -   CSS Modules / Custom styling
 -   AWS Transcribe
--   LLAMA 4
+-   LLAMA 4 Maverick Model
 -   ELEVENLABS TTS
 
 Getting Started 
--   git clone https://github.com/your-username/yappa.git
+-   git clone https://github.com/NityaK05/yappa.git
 -   cd yappa
 -   npm install
 -   npm install framer-motion
--   npm start
+-   npm run dev
 
 Future Plans
-- User login and session history saving
-- Exportable session transcripts
-- Real-time suggestions
+- User login and session + history saving
+- Faster response time / decreased latency with AI
+- Real-time suggestions + clear, detailed feedback
 
 Contributors
 - Anirudh Rajesh, Nitya Kakulamarri, Prathiyanka Arun, Avanthika Arun
